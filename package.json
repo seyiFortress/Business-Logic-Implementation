@@ -1,0 +1,50 @@
+{
+  "name": "bnpl-app",
+  "version": "1.0.0",
+  "description": "a real estate platform where users can buy properties from verified real estate companies.",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "dev": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seyiFortress/Business-Logic-Implementation.git"
+  },
+  "type": "module",
+  "keywords": [
+    "Real",
+    "Estate",
+    "BNPL",
+    "Payment",
+    "rules",
+    "Ownership",
+    "Restrictions",
+    "Payment",
+    "Handling"
+  ],
+  "author": "Oluwaseyi Fortress",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/seyiFortress/Business-Logic-Implementation/issues"
+  },
+  "homepage": "https://github.com/seyiFortress/Business-Logic-Implementation#readme",
+  "dependencies": {
+    "@paystack/inline-js": "^2.22.2",
+    "bcrypt": "^5.1.1",
+    "body-parser": "^2.2.0",
+    "config": "^3.3.12",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "joi": "^17.13.3",
+    "mailgen": "^2.0.29",
+    "mongodb": "^6.16.0",
+    "mongoose": "^8.13.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.1",
+    "paystack": "^2.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
