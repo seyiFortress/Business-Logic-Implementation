@@ -42,9 +42,10 @@ const userSchema = new Schema(
     verificationDocs: {
       type: [String]
     }, // Array of uploaded document URLs (e.g. ID, proof of income)
-    creditScore: {
-      type: Number
-    }, // Credit score of the user for BNPL eligibility review. e.g. 700
+    wallet: {
+      type: Number,
+      default: 0
+      }, // Wallet balance of the user. e.g. 1000.00
     status: { type: String, default: 'Pending' }
   },
 

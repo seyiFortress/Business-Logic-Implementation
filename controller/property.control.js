@@ -1,4 +1,3 @@
-import paystack from "paystack";
 import nodemailer from "nodemailer";
 import Mailgen from "mailgen";
 import "dotenv/config";
@@ -13,7 +12,7 @@ import Company from "../models/RE_company.model.js";
 const purchaseProperty = async (req, res) => {
   try {
     // Extract propertyID from request parameters
-    const { userId, paystackAuthorization } = req.body; // Paystack authorizatoin token
+    const { userId } = req.body; // Extract userID from request body
     const propertyId = req.params.id;
 
     // Verify user and property eligibility
@@ -34,17 +33,13 @@ const purchaseProperty = async (req, res) => {
       const remainingAmount = totalAmount - upfrontPayment; // Calculate remaining amount
       const monthlyInstallments = remainingAmount / 12; // Calculate monthly payment (12 months)
 
-      // Charge upfront payment via Paystack
-      const paymentResponse = await paystack.transaction.initialize({
-        // Create new transaction
-        authorization_code: paystackAuthorization, // Card/auth code
-        amount: upfrontPayment * 100, // Amount in kobo (1 Naira = 100 Kobo)
-        email: user.email,
-      });
-
-      if (paymentResponse.status !== true) {
-        return res.status(400).json({ message: "Payment failed!", message });
+      // Validate if user can afford upfront payment
+      if (user.wallet < upfrontPayment) {
+        return res.status(400).json( {message: "Insufficient funds for upfront payment!", message} );
       } else {
+        // Deduct upfront payment from user's wallet
+        user.wallet = user.wallet - upfrontPayment;
+        await user.save(); // Save updated user wallet balance
         // Create transaction record
         const dueDates = Array.from({ length: 12 }, (_, i) => {
           const date = new Date();
@@ -62,7 +57,6 @@ const purchaseProperty = async (req, res) => {
           monthlyInstallments, // Set monthly payment
           status: "active", // Set status to active
           dueDates, // Set due date to 30 days from now
-          paystackReference: paymentResponse.data.reference, // Set Paystack reference
           paidMonths: Array(12).fill(false), // Set all months as unpaid
         });
 

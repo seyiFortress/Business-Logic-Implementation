@@ -4,29 +4,6 @@ import "dotenv/config";
 
 /////////////////// Start Logic ////////////////////////////////////////////////////
 
-// Verify BNPL payments
-const verifyTransaction = async (req, res) => {
-    const event = req.body; // Get the event from the request body
-    if (event.event === "charge.success") {
-        const { reference } = event.data; // Get the reference from the event data
-
-        // Update the transaction status in the DB
-        const transaction = await bnplTransaction.findOneAndUpdate({paystackReference: reference},
-            {status: "active"}, // Update status to active
-            {new: true}, // Return the updated document
-            {$set: {
-                "paidMonths.0": true, // Mark the first month as paid
-                remainingAmount: totalAmount - upfrontPayment - monthlyInstallments // Update remaining amount
-            }}
-        );
-        if (!transaction) {
-            return res.status(404).json({message: "Transaction not found!"});
-        } else {
-            return res.status(200).json({message: "Transaction verified!", transaction});
-        }
-    }
-}
-
 // Make a monthly payment
 const monthlyTransaction = async (req, res) => {
     try {
@@ -35,67 +12,78 @@ const monthlyTransaction = async (req, res) => {
 
         // Validate inputs
         if (!userId || !transactionId) {
-            res.status(400).json({ message: "Invalid userId or transactionId!" });
-        } else {
-            const transaction = await bnplTransaction.findById(transactionId);
-            if (!transaction) {
-                return res.status(404).json({ message: "Transaction not found!" });
-            } else {
-                // Validate the length of due dates
-                if (!transaction.dueDates || transaction.dueDates.length !== transaction.paidMonths.length) {
-                    return res.status(400).json({ messaage: "Invalid transaction data!" });
-                } else {
-                    // Find next unpaid month
-                    const nextUnpaidIndex = transaction.paidMonths.findIndex(paid => !paid);
-                    if (nextUnpaidIndex === -1) {
-                        return res.status(400).json({ message: "All payments completed!" });
-                    } else {
-                        // Calculate payment amount
-                        const today = new Date();
-                        const isLate = today > transaction.dueDates[nextUnpaidIndex];
-                        const paymentAmount = isLate
-                            ? transaction.monthlyInstallments * 1.05 // +5% late fee
-                            : transaction.monthlyInstallments;
-
-                        // Fetch user and process payment
-                        const user = await User.findById(userId);
-                        if (!user) {
-                            return res.status(404).json({ message: "User not found!" });
-                        } else {
-                            let paymentResponse;
-                            try {
-                                paymentResponse = await paystack.transaction.initialize({
-                                    authorization_code: process.env.PAYSTACK_AUTH, // Use environment variables
-                                    amount: paymentAmount * 100, // Amount in kobo (1 Naira = 100 Kobo)
-                                    email: user.email
-                                });
-                            } catch (paymentError) {
-                                return res.status(500).json({ message: "Payment processing failed!", error: paymentError.message });
-                            }
-                            // Update transaction
-                            transaction.paidMonths[nextUnpaidIndex] = true;
-                            transaction.remainingAmount -= transaction.monthlyInstallments;
-    
-                            if (isLate) {
-                                transaction.lateFees += paymentAmount - transaction.monthlyInstallments;
-                            }
-
-                            // Check if all payments are done
-                            if (transaction.paidMonths.every(paid => paid)) {
-                            transaction.status = "completed";
-                            }
-
-                            await transaction.save();
-                            res.json({ details: transaction });
-                        }
-                    }
-                }
-            }
+            return res.status(400).json({ message: "No userId or transactionId!" });
         }
+
+        const transaction = await bnplTransaction.findById(transactionId);
+        const user = await User.findById(userId);
+
+        if (!transaction || !user) {
+            return res.status(404).json({ message: "Transaction or user not found!" });
+        }
+
+        // Validate the length of due dates
+        if (!transaction.dueDates || transaction.dueDates.length !== transaction.paidMonths.length) {
+            return res.status(400).json({ message: "Invalid transaction data!" });
+        }
+
+        // Find next unpaid month
+        const nextUnpaidIndex = transaction.paidMonths.findIndex(paid => !paid);
+        if (nextUnpaidIndex === -1) {
+            transaction.status = "completed";
+            await transaction.save();
+            return res.json({ message: "Transaction completed!", transaction });
+        }
+
+        // Calculate payment amount
+        const today = new Date();
+        const isLate = today > transaction.dueDates[nextUnpaidIndex];
+
+        if (transaction.missedPaymentCount >= 3) {
+            transaction.status = "repossessed";
+            transaction.repossessionDate = new Date();
+            await transaction.save();
+            return res.status(400).json({ message: "Transaction repossessed!", transaction });
+        }
+
+        if (isLate && transaction.missedPaymentCount < 3) {
+            transaction.status = "defaulted";
+            await transaction.save();
+        }
+
+        const paymentAmount = isLate
+            ? transaction.monthlyInstallments * 1.05 // +5% late fee
+            : transaction.monthlyInstallments;
+
+        if (user.wallet < paymentAmount) {
+            return res.status(400).json({ message: "Insufficient funds!", user });
+        }
+
+        // Deduct payment from user's wallet
+        user.wallet -= paymentAmount;
+        await user.save();
+
+        // Update transaction details
+        transaction.missedPaymentCount = isLate
+            ? transaction.missedPaymentCount + 1
+            : 0;
+
+        transaction.paidMonths[nextUnpaidIndex] = true;
+        transaction.remainingAmount = Math.max(
+            0,
+            transaction.remainingAmount - transaction.monthlyInstallments
+        );
+
+        if (isLate) {
+            transaction.lateFees += paymentAmount - transaction.monthlyInstallments;
+        }
+
+        await transaction.save();
+        res.json({ details: transaction });
     } catch (error) {
         res.status(500).json({ message: "Payment failed!", error: error.message });
     }
-}
+};
 
 // Fetch all active Transactions
 const getActiveTransactions = async (req, res) => {
@@ -134,4 +122,4 @@ const viewPaymentSchedule = async (req, res) => {
 
 ////////////////////////////////////// End Logic /////////////////////////
 
-export { verifyTransaction, getActiveTransactions, getActiveTransaction, viewPaymentSchedule, monthlyTransaction };
+export { getActiveTransactions, getActiveTransaction, viewPaymentSchedule, monthlyTransaction };

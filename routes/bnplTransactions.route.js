@@ -1,4 +1,4 @@
-import { verifyTransaction, getActiveTransactions, getActiveTransaction, viewPaymentSchedule, monthlyTransaction } from "../controller/bnplTransactions.control.js";
+import { getActiveTransactions, getActiveTransaction, viewPaymentSchedule, monthlyTransaction } from "../controller/bnplTransactions.control.js";
 import { isSupportAdmin } from "../controller/middlewares/AdminAuth.js";
 import express from "express";
 const routes = express.Router();
@@ -9,7 +9,6 @@ routes.get("/bnpl/activeTransactions/:id", getActiveTransaction); // active tran
 routes.get("/bnpl/:id/schedule", viewPaymentSchedule); // payment schedule for a user
 
 ////////////////////// POST ROUTES //////////////////////
-routes.post("/paystack/webhook", verifyTransaction); // Verify BNPL payments
 routes.post("/bnpl/:id/pay", monthlyTransaction); // Make a monthly payment
 
 export default routes;
