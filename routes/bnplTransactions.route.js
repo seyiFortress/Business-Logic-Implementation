@@ -1,14 +1,13 @@
 import { getActiveTransactions, getActiveTransaction, viewPaymentSchedule, monthlyTransaction } from "../controller/bnplTransactions.control.js";
-import { isSupportAdmin } from "../controller/middlewares/AdminAuth.js";
 import express from "express";
 const routes = express.Router();
 
-////////////////////// GET ROUTES //////////////////////
-routes.get("/bnpl/activeTransactions", isSupportAdmin, getActiveTransactions); // active transactions
-routes.get("/bnpl/activeTransactions/:id", getActiveTransaction); // active transaction by ID
-routes.get("/bnpl/:id/schedule", viewPaymentSchedule); // payment schedule for a user
+////////////////////// ROUTES //////////////////////
+routes.get("/:companyId/bnpl/active/properties", getActiveTransactions); // active transactions
+routes.get("/:companyId/bnpl/active/properties/:transactionId", getActiveTransaction); // active transaction by ID
+routes.get("/bnpl/schedule/:id", viewPaymentSchedule); // payment schedule for a user
 
-////////////////////// POST ROUTES //////////////////////
-routes.post("/bnpl/:id/pay", monthlyTransaction); // Make a monthly payment
+////////////////////// UPDATE ROUTES //////////////////////
+routes.patch("/:companyId/properties/bnplproperties/:transactionId", monthlyTransaction); // Make a monthly payment
 
 export default routes;

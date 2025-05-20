@@ -21,7 +21,7 @@ app.use("/api", propertyRoute); // Mount property routes
 app.use("/api", transactionRoute); // Mount transaction routes
 app.use("/api", RE_companyRoute); // Mount real estate company routes
 app.use(bodyParser.urlencoded({ extended: true })); // Middleware to parse URL-encoded request bodies
-app.get("/", (req, res) => {
+app.get("/", (_, res) => {
   res.status(200).send("Hello from the root directory!");
 });
 // console.log(propertyRoute) // check if the registerRoute is imported correctly

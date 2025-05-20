@@ -1,6 +1,7 @@
 import bnplTransaction from "../models/bnplTransaction.model.js"; // Import BNPLTransaction model
 import User from "../models/user.model.js";
 import "dotenv/config";
+import mongoose from "mongoose"; // Import mongoose for ObjectId validation
 
 /////////////////// Start Logic ////////////////////////////////////////////////////
 
@@ -8,7 +9,7 @@ import "dotenv/config";
 const monthlyTransaction = async (req, res) => {
     try {
         const { userId } = req.body;
-        const transactionId = req.params.id;
+        const transactionId = req.params.transactionId;
 
         // Validate inputs
         if (!userId || !transactionId) {
@@ -86,28 +87,34 @@ const monthlyTransaction = async (req, res) => {
 };
 
 // Fetch all active Transactions
-const getActiveTransactions = async (req, res) => {
+const getActiveTransactions = async (_, res) => {
     try {
-        const transactions = await bnplTransaction.findOne({ status: "active" });
+        const transactions = await bnplTransaction.find({ status: "active" });
         res.status(200).json({message: "Active transactions found!", transactions});
     } catch (error) {
-        res.status(500).json({message: error.message});
+        res.status(500).json({error: error.message});
     }
 };
 
 // Fetch active transaction by ID
 const getActiveTransaction = async (req, res) => {
     try {
-        const { id } = req.params;
-        const transaction = await bnplTransaction.findById(id);
-        if (!transaction) {
-            res.status(404).json({message: "Transaction not found!"});
+        const { transactionId } = req.params;
+
+        // Validate if the id is a valid MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(transactionId)) {
+            return res.status(400).json({message: "Invalid transaction ID format!"});
+        }
+
+        const transaction = await bnplTransaction.findById(transactionId);
+        if (!transaction && transaction.status !== "active") {
+            res.status(404).json({message: "Active transaction not found!"});
         } else {
-            res.status(200).json({message: "Transaction found!", transaction});
+            res.status(200).json({message: "Active transaction found!", transaction});
         }
     } catch (error) {
         res.status(500).json({error: error.message});
-    };
+    }
 };
 
 // View Payment Schedule

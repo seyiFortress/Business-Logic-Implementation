@@ -6,12 +6,12 @@ const router = express.Router();
 
 ///////////////////////////////////// Start Route //////////////////////////////////////////////////
 
-router.post("/companies/register", registerCompany); // Create company profile
-router.get("/companies/v", isSupportAdmin, getVerifiedCompanies); // Fetch verified companies
-router.get("/companies/uv", isSupportAdmin, getUnverifiedCompanies); // Fetch unverified companies
-router.get("/companies/:id", getCompanyStatus); // Fetch company status by ID
-router.patch("/companies/:id/s", isSupportAdmin, updateCompanyStatus); // Update company status
-router.patch("/companies/:id/v", isSupportAdmin, verifyCompany); // Verify Company
+router.post("/companies", registerCompany); // Create company profile
+router.get("/verify/companies", getVerifiedCompanies); // Admin read verified companies
+router.get("/companies", getUnverifiedCompanies); // Admin read unverified companies
+router.get("/status/companies/:id", getCompanyStatus); // read company status by ID
+router.patch("/status/companies/:id", updateCompanyStatus); // Admin update company status
+router.patch("/verify/companies/:id", verifyCompany); // Admin verify Company
 
 //////////////////////////////////// End Route ////////////////////////////////////////////////////
 

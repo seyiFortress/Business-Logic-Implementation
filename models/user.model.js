@@ -39,14 +39,11 @@ const userSchema = new Schema(
       default: false,
     }, // Indicates the verification status of the user
     verificationReason: { type: String }, // e.g., "good credit score with supporting documents"
-    verificationDocs: {
-      type: [String]
-    }, // Array of uploaded document URLs (e.g. ID, proof of income)
     wallet: {
       type: Number,
       default: 0
       }, // Wallet balance of the user. e.g. 1000.00
-    status: { type: String, default: 'Pending' }
+    status: { type: String, default: 'Pending', enum: ['Pending', 'Approved', 'Rejected'] }
   },
 
   {

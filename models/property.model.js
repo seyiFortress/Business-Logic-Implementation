@@ -40,8 +40,8 @@ const propertySchema = new Schema(
     status: {
       type: String,
       required: [true, "Property status is required"],
-      enum: ["available", "sold", "under construction", "purchased"],
-      default: "available",
+      enum: ["Available", "Unavailable"],
+      default: "Unavailable",
     }, // Status of the property. e.g. 'available'
     dateAvailable: {
       type: Date,
@@ -104,10 +104,6 @@ const propertySchema = new Schema(
       ref: "Company"
     }, // ID of the comapny that owns the property. e.g. '1234567890abbcdef123456'
     createdAt: {
-      type: Date,
-      default: Date.now,
-    }, // Date when the property is created
-    upDatedAt: {
       type: Date,
       default: Date.now,
     }, // Date when the property is updated

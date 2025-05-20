@@ -9,19 +9,24 @@ import Company from "../models/RE_company.model.js";
 /////////////////// Start Routes ////////////////////////////////////////////////////
 
 // purchase BNPL property
-const purchaseProperty = async (req, res) => {
+const purchaseBNPLProperty = async (req, res) => {
   try {
-    // Extract propertyID from request parameters
+    // Extract propertyID and userID from request parameters
     const { userId } = req.body; // Extract userID from request body
-    const propertyId = req.params.id;
+    const { propertyId } = req.params; // Extract propertyID from request parameters
+    const { companyId } = req.params; // Extract companyID from request parameters
+    // Validate input
+    if (!userId) {
+      return res.status(400).json({ message: "user ID required! " });
+    }
 
     // Verify user and property eligibility
     const user = await User.findById(userId); // Find user by ID
     const property = await Property.findById(propertyId); // Find property by ID
     if (
-      !user.isVerified &&
-      !property.isBNPLEligible &&
-      !property.status === "available"
+      !user.status === "Approved" &&
+      !property.companyId === companyId &&
+      !property.status === "Available"
     ) {
       return res
         .status(403)
@@ -35,7 +40,10 @@ const purchaseProperty = async (req, res) => {
 
       // Validate if user can afford upfront payment
       if (user.wallet < upfrontPayment) {
-        return res.status(400).json( {message: "Insufficient funds for upfront payment!", message} );
+        return res.status(400).json({
+          message: "Insufficient funds for upfront payment!",
+          message,
+        });
       } else {
         // Deduct upfront payment from user's wallet
         user.wallet = user.wallet - upfrontPayment;
@@ -55,7 +63,7 @@ const purchaseProperty = async (req, res) => {
           upfrontPayment, // Set upfront payment
           remainingAmount, // Set remaining amount
           monthlyInstallments, // Set monthly payment
-          status: "active", // Set status to active
+          // status, // Set status
           dueDates, // Set due date to 30 days from now
           paidMonths: Array(12).fill(false), // Set all months as unpaid
         });
@@ -116,34 +124,54 @@ const purchaseProperty = async (req, res) => {
       .status(201)
       .json({ message: "BNPL purchased successfully!", bnplTransaction }); // Send success response
   } catch (error) {
-    res.status(500).json({ message: "BNPL purchase failed", message });
+    res
+      .status(500)
+      .json({ message: "BNPL purchase failed", error: error.message });
   }
 };
 
 // register property
 const registerProperty = async (req, res) => {
+  const {
+    title,
+    description,
+    price,
+    priceCurrency,
+    location,
+    bathrooms,
+    area,
+    bedrooms,
+    areaUnit,
+    amenities,
+    images,
+  } = req.body; // Descructure request body
   try {
-    const comp$id = req.body.companyId;
-    if (!comp$id) {
-      res.status(400).json({ message: "Company ID not found, include ID!" });
-    } else {
-      const company = await Company.findById({ comp$id });
-      if (!company) {
-        res.status(404).json({ message: "company does not exist!" });
-      } else {
-        if (company.status === "Pending") {
-          res.status(404).json({ message: "company not approved to sell!" });
-        } else {
-          const property = await Property.create(req.body);
-          res
-            .status(201)
-            .json({
-              message: "Property registerd successfully!",
-              details: property,
-            });
-        }
-      }
+    const comp$id = req.params.companyId;
+    const company = await Company.findById(comp$id);
+    if (company.status !== "Approved") {
+      return res
+        .status(401)
+        .json({ message: "company not approved to sell property!" });
     }
+    const property = await Property.create({
+      title,
+      description,
+      price,
+      priceCurrency,
+      location,
+      bathrooms,
+      area,
+      bedrooms,
+      areaUnit,
+      companyId: comp$id,
+      amenities,
+      images,
+    });
+
+    res.status(201).json({
+      message: "Property registerd successfully!",
+      details: property,
+    });
   } catch (error) {
     res
       .status(500)
@@ -152,18 +180,17 @@ const registerProperty = async (req, res) => {
 };
 
 // Fetch all BNPL eligible properties
-const bnplEligibleProperties = async (req, res) => {
+const bnplEligibleProperties = async (_, res) => {
+  const bnplProperties = await Property.find({ isBNPLEligible: true });
+
   try {
-    const bnplProperties = await Property.find({ isBNPLEligible: true });
-    if (!bnplProperties) {
+    if (bnplProperties.length === 0) {
       res.status(404).json({ message: "BNPL eligible properties not found!" });
     } else {
-      res
-        .status(200)
-        .json({
-          message: "BNPL eligible properties found!",
-          details: bnplProperties,
-        });
+      res.status(200).json({
+        message: "BNPL eligible properties found!",
+        details: bnplProperties,
+      });
     }
   } catch (error) {
     res
@@ -174,39 +201,45 @@ const bnplEligibleProperties = async (req, res) => {
 
 // Fetch all available properties
 const availableProperties = async (req, res) => {
+  const id = req.params.companyId; // Extract comapny ID from request parameters
   try {
-    const properties = await Property.find({ status: "available" });
-    if (!properties) {
-      res.status(404).json({ message: "Available properties not found!" });
+    const properties = await Property.find({
+      status: "Available",
+      companyId: id,
+    });
+    if (properties.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Available properties not found!" });
     } else {
       res
         .status(200)
         .json({ message: "Available properties found!", details: properties });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error fetching available properties!",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error reading bnpl available properties!",
+      error: error.message,
+    });
   }
 };
 
 // Fetch property by ID
 const getProperty = async (req, res) => {
+  const id = req.params.propertyId; // Extract property ID from request pararmeters
+
   try {
-    const propertyId = req.params.id;
-    const property = await Property.findById({ propertyId });
+    const property = await Property.findById(id); // Find property by ID
+
     if (!property) {
       res.status(404).json({ message: "Property not found!" });
     } else {
-      res.status(200).json({ message: "Property found!", property });
+      res.status(200).json({ message: "Property found!", details: property });
     }
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Fetch property failed!", error: error.message });
+      .json({ message: "Error reading property!", error: error.message });
   }
 };
 
@@ -217,5 +250,5 @@ export {
   bnplEligibleProperties,
   availableProperties,
   getProperty,
-  purchaseProperty,
+  purchaseBNPLProperty,
 };
