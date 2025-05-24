@@ -6,11 +6,12 @@ import {
   getVerifiedUsers,
   getUnverifiedUsers,
   getUser,
+  loginAdmin,
   getAllAdmin,
 } from "../controller/user.control.js";
 import {
-  isSuperAdmin,
-  isSupportAdmin,
+  superAdminVerifyToken,
+  supportAdminVerifyToken,
 } from "../controller/middlewares/AdminAuth.js";
 import {
   updateUserStatus,
@@ -23,14 +24,15 @@ const router = express.Router();
 
 router.post("/users", registerUser); // Create user
 router.post("/admins", registerAdmin); // Create admin
+router.post("/admins/login", loginAdmin); // Admin login for token
 router.get("/users/:id", getUser); // Read user by ID
-router.get("/admins/:id", getAdmin); // Read admin by ID
-router.get("/verify/users", getVerifiedUsers); // Read verified users
-router.get("/users", getUnverifiedUsers); // Read unverified users
-router.get("/admins", getAllAdmin); // Read all administrators
-router.patch("/role/admins/:id", assignRoleToAdmin); // Update admin role
-router.patch("/status/users/:id", updateUserStatus); // Update user status
-router.patch("/verify/users/:id", verifyUser); // Update user verification
+router.get("/admins/:id", superAdminVerifyToken, getAdmin); // Admin read admin by ID
+router.get("/verify/users", supportAdminVerifyToken, getVerifiedUsers); // Admin read verified users
+router.get("/users", supportAdminVerifyToken, getUnverifiedUsers); // Admin read unverified users
+router.get("/admins", superAdminVerifyToken, getAllAdmin); // Admin read all administrators
+router.patch("/role/admins/:id", superAdminVerifyToken, assignRoleToAdmin); // Admin update admin role
+router.patch("/status/users/:id", supportAdminVerifyToken, updateUserStatus); // Admin update user status
+router.patch("/verify/users/:userId", superAdminVerifyToken, verifyUser); // Admin update user verification
 
 //////////////////////// END ROUTES /////////////////////////
 

@@ -70,7 +70,7 @@ const getUnverifiedCompanies = async (req, res) => {
 // Fetch company status by ID
 const getCompanyStatus = async (req, res) => {
   try {
-    const id = req.params.id;
+    const id = req.params.companyId;
     const company = await Company.findById(
       id,
       "name email phone address isVerified licenseNumber status"

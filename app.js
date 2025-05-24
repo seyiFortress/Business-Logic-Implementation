@@ -11,7 +11,10 @@ import bodyParser from "body-parser";
 
 
 const app = express();
-const port = process.env.port || 8080;
+const port = process.env.APP_PORT || 3000; // Default port is 3000 if APP_PORT is not set
+const dbURL = process.env.DATABASE_URL; // MongoDB connection string
+if (!dbURL) { console.error("DATABASE_URL is not set!"); process.exit(1); } // Log error if DATABASE_URL is not set and exit the process
+
 
 
 
@@ -32,7 +35,7 @@ app.get("/", (_, res) => {
 
 // Connect to MongoDB using Mongoose
 mongoose
-  .connect(process.env.DATABASE_URL)
+  .connect(dbURL)
   .then(() => {
     // Create the server and listen on the specified port
     app.listen(port, () => {

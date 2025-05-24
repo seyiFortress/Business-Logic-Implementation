@@ -63,21 +63,29 @@ const updatePropertyStatus = async (req, res) => {
 
 // Update company status
 const updateCompanyStatus = async (req, res) => {
-  const { status } = req.body;
+  const { verificationReason } = req.body;
   // Validate input
-  if (!status) {
-    return res.status(400).json({ message: "Status is required!" });
+  if (!verificationReason) {
+    return res
+      .status(400)
+      .json({ message: "Reason for verification is required!" });
   }
   try {
-    const company = await Company.findById(req.params.id);
+    const company = await Company.findById(req.params.companyId);
 
-    if (!company) {
+    if (!company)
       return res.status(404).json({ message: "Company not found!" });
-    } else {
-      if (company.isVerified) company.set({ status });
-      await company.save();
-      res.status(200).json({ message: "Status updated!", details: company });
+
+    if (verificationReason !== company.verificationReason) {
+      return res
+        .status(400)
+        .json({ message: "Reason for verification does not match!" });
     }
+    company.isVerified
+      ? company.set({ status: "Approved" })
+      : company.set({ status: "Rejected" });
+    await company.save();
+    res.status(200).json({ message: "Status updated!", details: company });
   } catch (error) {
     res
       .status(500)
@@ -120,7 +128,7 @@ const updatePropertyEligibility = async (req, res) => {
 const verifyCompany = async (req, res) => {
   try {
     const { verificationReason, isVerified } = req.body;
-    const id = req.params.id;
+    const id = req.params.companyId;
 
     // validate input
     if (!verificationReason) {
@@ -149,21 +157,24 @@ const verifyCompany = async (req, res) => {
 // Verify User
 const verifyUser = async (req, res) => {
   try {
-    const { verificationReason } = req.body;
+    const { verificationReason, isVerified } = req.body;
 
-    // Update isVerified if verificationReason is provided
+    // confirm verificationReason is provided
     if (!verificationReason) {
-      return res
-        .status(400)
-        .json({ message: "Verification reason is required!" });
+      return res.status(400).json({ message: "Verification reason required!" });
     }
 
-    const user = await User.findById(req.params.id);
+    // confirm isVerified is provided
+    if (isVerified === undefined) {
+      return res.status(400).json({ message: "Confirmation required!" });
+    }
+
+    const user = await User.findById(req.params.userId);
     if (!user) {
       return res.status(400).json({ message: "User not found!" });
     }
 
-    user.set({ isVerified: true, verificationReason });
+    user.set({ isVerified, verificationReason });
     await user.save();
     res
       .status(200)

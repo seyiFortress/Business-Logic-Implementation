@@ -10,7 +10,7 @@ import {
   updatePropertyStatus,
   updatePropertyEligibility,
 } from "../controller/admin.control.js";
-import { isSupportAdmin } from "../controller/middlewares/AdminAuth.js";
+import { supportAdminVerifyToken, superAdminVerifyToken } from "../controller/middlewares/AdminAuth.js";
 const router = express.Router();
 
 //////////////////////// DEFINE ROUTE /////////////////////////
@@ -18,13 +18,13 @@ const router = express.Router();
 router.post("/:companyId/properties/:propertyId", purchaseBNPLProperty); // Create BNPL property
 router.post("/:companyId/properties", registerProperty); // Create property
 router.patch(
-  "/:companyId/bnpl/eligible/properties/:propertyId",
+  "/:companyId/bnpl/eligible/properties/:propertyId", supportAdminVerifyToken,
   updatePropertyStatus
-); // Update property status
-router.patch("/:companyId/properties/:propertyId", updatePropertyEligibility); // Update property eligibility
+); // Admin update property status
+router.patch("/:companyId/properties/:propertyId", superAdminVerifyToken, updatePropertyEligibility); // Admin update property eligibility
 router.get("/:companyId/bnpl/eligible/properties", bnplEligibleProperties); // Read eligible BNPL properties
 router.get("/:companyId/properties/:propertyId", getProperty); // Read property by ID
-router.get("/:companyId/bnpl/status/properties", availableProperties); // Read properties
+router.get("/:companyId/bnpl/status/properties", availableProperties); // Read available properties
 
 /////////////////////////// ROUTE ///////////////////////////
 

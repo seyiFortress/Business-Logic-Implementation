@@ -138,44 +138,59 @@ const registerProperty = async (req, res) => {
     price,
     priceCurrency,
     location,
+    propertyType,
     bathrooms,
     area,
     bedrooms,
     areaUnit,
     amenities,
     images,
-  } = req.body; // Descructure request body
+  } = req.body; // Destructure request body
+
   try {
-    const comp$id = req.params.companyId;
-    const company = await Company.findById(comp$id);
+    const company = await Company.findById(req.params.companyId);
     if (company.status !== "Approved") {
       return res
         .status(401)
         .json({ message: "company not approved to sell property!" });
     }
-    const property = await Property.create({
+
+    const property = await Property.find({ title, location, propertyType });
+    if (
+      property.length > 0
+    ) {
+      return res.status(400).json({ message: "Property already exist!" });
+    }
+
+    // Create new property
+    const newProperty = new Property({
       title,
       description,
       price,
       priceCurrency,
       location,
+      propertyType,
       bathrooms,
       area,
       bedrooms,
       areaUnit,
-      companyId: comp$id,
       amenities,
       images,
+      companyId: req.params.companyId, // Set company ID from request param
     });
-
+    await newProperty.save(); // Save new property to database
+    // Notify company of successful property registration via email
     res.status(201).json({
       message: "Property registerd successfully!",
-      details: property,
+      details: newProperty,
     });
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Property registration failed!", error: error.message });
+      .json({
+        message: "Property registration failed!",
+        details: error.message,
+      });
   }
 };
 

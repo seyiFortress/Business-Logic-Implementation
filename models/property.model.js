@@ -62,7 +62,6 @@ const propertySchema = new Schema(
         "townhouse",
         "studio apartment",
       ],
-      default: "other",
     }, // Type of the property. e.g. 'apartment'
     bedrooms: {
       type: Number,
@@ -82,8 +81,7 @@ const propertySchema = new Schema(
     areaUnit: {
       type: String,
       required: [true, "Area unit is required"],
-      enum: ["sqft", "sqm"],
-      default: "sqm",
+      enum: ["sqft", "sqm"]
     }, // Unit of the area. e.g. 'sqm'
     amenities: {
       type: [String],
